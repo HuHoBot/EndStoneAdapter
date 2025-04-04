@@ -7,8 +7,6 @@
 #include <thread>
 #include <regex>
 #include "WebSocketClient.h"
-using namespace std;
-
 
 #if defined(_WIN32)
 
@@ -51,7 +49,7 @@ namespace cyanray
 		hints.ai_family = AF_UNSPEC;
 		hints.ai_socktype = SOCK_STREAM;
 
-		int ret = getaddrinfo(hostname.c_str(), to_string(port).c_str(), &hints, &result);
+		int ret = getaddrinfo(hostname.c_str(), std::to_string(port).c_str(), &hints, &result);
 		if (ret != 0)
 		{
 			throw std::runtime_error("getaddrinfo failed.");
@@ -90,7 +88,7 @@ namespace cyanray
 
 		void Send(WebSocketOpcode opcode)
 		{
-			array<byte_t, 6> frame_data = { 0x00, 0x80, 0x00, 0x00, 0x00, 0x00 };
+			std::array<byte_t, 6> frame_data = { 0x00, 0x80, 0x00, 0x00, 0x00, 0x00 };
 			frame_data[0] = 0x80 | (byte_t)opcode;
 			int sendResult = send(wsSocket, (char*)frame_data.data(), (int)frame_data.size(), 0);
 			if (sendResult == SOCKET_ERROR)
@@ -214,7 +212,7 @@ namespace cyanray
 
 	void WebSocketClient::Connect(const string& ws_uri)
 	{
-		regex pattern(R"(ws:\/\/([^:\/]+):?(\d+)?(\/[\S]*)?)");
+		std::regex pattern(R"(ws:\/\/([^:\/]+):?(\d+)?(\/[\S]*)?)");
 		std::smatch matches;
 		std::regex_search(ws_uri, matches, pattern);
 		if (matches.size() == 0)
@@ -239,7 +237,7 @@ namespace cyanray
 
 		string handshakingWords;
 		handshakingWords.append("GET ").append(path).append(" HTTP/1.1").append("\r\n");
-		handshakingWords.append("Host: ").append(hostname).append(":").append(to_string(port)).append("\r\n");
+		handshakingWords.append("Host: ").append(hostname).append(":").append(std::to_string(port)).append("\r\n");
 		handshakingWords.append("Connection: Upgrade").append("\r\n");
 		handshakingWords.append("Upgrade: websocket").append("\r\n");
 		//handshakingWords.append("Origin: http://example.com").append("\r\n");
@@ -360,7 +358,7 @@ namespace cyanray
 			}
 			if (ret != 0 && FD_ISSET(sock, &fds_read))
 			{
-				array<char, 2048>  buf = {};
+				std::array<char, 2048>  buf = {};
 				int bytesReceived = recv(sock, buf.data(), (int)buf.size(), 0);
 				if (bytesReceived > 0)
 				{
@@ -460,7 +458,7 @@ namespace cyanray
 							{
 								ErrorCallback(*this, 
 									string("The opcode #")
-										.append(to_string((int)info.Opcode)
+										.append(std::to_string((int)info.Opcode)
 										.append(" is not supported.") ));
 
 							}

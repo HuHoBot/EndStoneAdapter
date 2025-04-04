@@ -3,24 +3,18 @@
 #include "nlohmann/json.hpp"
 #include <string>
 #include <vector>
-#include <mutex>
-
-#ifdef _WIN32
-#define DLL_EXPORT __declspec(dllexport)
-#else
-#define DLL_EXPORT
-#endif
 
 using json = nlohmann::json;
 
-struct DLL_EXPORT CustomCommand {
+struct CustomCommand {
     std::string key;
     std::string command;
     int permission;
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(CustomCommand, key, command, permission)
 };
 
-class DLL_EXPORT ConfigManager {
+
+class ConfigManager {
 public:
     static ConfigManager& Get();
 
@@ -40,12 +34,14 @@ public:
     void Load(const std::string& path);
     void Save();
 
-private:
     ConfigManager();
+
+private:
     void InitDefaults();
 
     json data_;
     std::string path_;
     int version_ = 1;
-    mutable std::mutex mutex_;
 };
+
+

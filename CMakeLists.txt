@@ -13,13 +13,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(endstone)
 
-add_library(HuHoBot
-        src/HuhobotClient.cpp
-        src/tools.cpp
-        src/WebSocketClient.cpp
-        src/ConfigManager.cpp  # 新增
-        src/huhobot.cpp
+file(GLOB_RECURSE SOURCES
+        "src/*.cpp"
+        "src/**/*.cpp"
 )
-
-endstone_add_plugin(${PROJECT_NAME} src/huhobot.cpp)
-target_include_directories(${PROJECT_NAME} PRIVATE include)
+endstone_add_plugin(${PROJECT_NAME} ${SOURCES})
+target_include_directories(${PROJECT_NAME}
+        PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)

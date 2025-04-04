@@ -3,6 +3,7 @@
 #include <fstream>
 #include "tools.h" // 包含generate_pack_id()
 
+
 ConfigManager& ConfigManager::Get() {
     static ConfigManager instance;
     return instance;
@@ -13,7 +14,6 @@ ConfigManager::ConfigManager() {
 }
 
 void ConfigManager::Load(const std::string& path) {
-    std::lock_guard<std::mutex> lock(mutex_);
     path_ = path;
 
     try {
@@ -30,9 +30,17 @@ void ConfigManager::Load(const std::string& path) {
 }
 
 void ConfigManager::Save() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    // 创建父目录
+    auto config_path = std::filesystem::path(path_);
+    if (!std::filesystem::exists(config_path.parent_path())) {
+        std::filesystem::create_directories(config_path.parent_path());
+    }
+
     std::ofstream fout(path_);
-    fout << data_.dump(4);
+    if (fout.is_open()) {
+        fout << data_.dump(4);
+        fout.close(); // 确保数据刷新到磁盘
+    }
 }
 
 void ConfigManager::InitDefaults() {
@@ -57,7 +65,7 @@ void ConfigManager::InitDefaults() {
     }
 
     if (!data_.contains("serverName")) {
-        data_["serverName"] = "AllayMC";
+        data_["serverName"] = "EndStone";
     }
 
     if (!data_.contains("customCommand")) {
@@ -70,47 +78,38 @@ void ConfigManager::InitDefaults() {
 
 // Getter实现
 int ConfigManager::GetVersion() const {
-    std::lock_guard<std::mutex> lock(mutex_);
     return data_["version"];
 }
 
 std::string ConfigManager::GetServerId() const {
-    std::lock_guard<std::mutex> lock(mutex_);
     return data_["serverId"];
 }
 
 std::string ConfigManager::GetHashKey() const {
-    std::lock_guard<std::mutex> lock(mutex_);
     return data_["hashKey"];
 }
 
 std::string ConfigManager::GetChatFormatGroup() const {
-    std::lock_guard<std::mutex> lock(mutex_);
     return data_["chatFormatGroup"];
 }
 
 std::string ConfigManager::GetMotdUrl() const {
-    std::lock_guard<std::mutex> lock(mutex_);
     return data_["motdUrl"];
 }
 
 std::string ConfigManager::GetServerName() const {
-    std::lock_guard<std::mutex> lock(mutex_);
     return data_["serverName"];
 }
 
 std::vector<CustomCommand> ConfigManager::GetCustomCommands() const {
-    std::lock_guard<std::mutex> lock(mutex_);
     return data_["customCommand"];
 }
 
 // Setter实现
 void ConfigManager::SetServerId(const std::string& id) {
-    std::lock_guard<std::mutex> lock(mutex_);
     data_["serverId"] = id;
 }
 
 void ConfigManager::SetHashKey(const std::string& key) {
-    std::lock_guard<std::mutex> lock(mutex_);
     data_["hashKey"] = key;
 }
