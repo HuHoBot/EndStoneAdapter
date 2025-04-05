@@ -4,6 +4,9 @@
 #include "nlohmann/json.hpp"
 #include "tools.h"
 #include <unordered_map>
+#include "endstone/scheduler/task.h"
+#include "config.h"
+
 
 using cyanray::WebSocketClient;
 using endstone::Logger;
@@ -21,13 +24,19 @@ struct EnumConverter {
 class BotClient{
 private:
     WebSocketClient client;
-    string serverUrl = "ws://127.0.0.1:8888";
+    std::string serverUrl = HUHOBOT_SERVER_URL;
     Logger* logger;
     std::unordered_map<std::string, std::string> bindMap;
     bool shouldReconnect;
+    int reconnectCount = 0;
+    int maxReconnectCount = 5;
+    std::shared_ptr<endstone::Task> reconnectTask = nullptr;
+    std::shared_ptr<endstone::Task> heartTask = nullptr;
+    std::shared_ptr<endstone::Task> autoDisConnectTask = nullptr;
 
     json buildMsg(ServerSendEvent event_type,json body,string packId);
     void shakeHand();
+    void shakedProcess();
 
     //Event Handler
     void handler_sendConfig(string packId,json &body);
@@ -54,4 +63,8 @@ public:
             string packId=tools::generate_pack_id()
     );
     void bindConfirm(string code);
+    void reconnect();
+    void sendHeart();
+    void shutdown(bool _shouldReconnect=true);
+    void BotClient::task_reconnect();
 };

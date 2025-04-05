@@ -1,0 +1,2 @@
+#pragma once
+#define HUHOBOT_SERVER_URL "@HUHOBOT_SERVER_URL@"

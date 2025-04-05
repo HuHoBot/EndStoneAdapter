@@ -1,6 +1,7 @@
 #include "HuhobotClient.h"
 #include "ConfigManager.h"
 #include "huhobot.h"
+#include "endstone/scheduler/scheduler.h"
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -73,7 +74,7 @@ string EnumConverter::ToString(ServerRecvEvent e) {
     return map.at(e);
 };
 
-static ServerRecvEvent FromString(const std::string& str) {
+ServerRecvEvent EnumConverter::FromString(const std::string& str) {
     static const std::unordered_map<std::string, ServerRecvEvent> reverse_map = {
             {"sendConfig", ServerRecvEvent::sendConfig},
             {"shaked",     ServerRecvEvent::shaked},
@@ -100,6 +101,7 @@ static ServerRecvEvent FromString(const std::string& str) {
 
 BotClient::BotClient(endstone::Logger *logger) {
     this->logger = logger;
+    //this->logger->info("Server URL: {}", serverUrl);
 }
 
 void BotClient::connect(){
@@ -109,22 +111,44 @@ void BotClient::connect(){
         this->onTextMsg(msg); // 将消息转发给成员函数
     });
     client.OnError([this](cyanray::WebSocketClient& ws, std::string msg) {
-
+        this->onError(msg);
     });
     client.OnLostConnection([this](cyanray::WebSocketClient& ws, int code) {
-
+        this->onLost(code);
     });
     logger->info("连接服务器成功.");
     logger->info("正在握手...");
     shakeHand();
 }
 
+void BotClient::reconnect() {
+    logger->info("正在重连服务器...");
+    if(client.GetStatus() == WebSocketClient::Status::Open){
+        client.Close();
+        shouldReconnect = false;
+    }
+    connect();
+}
+
+void BotClient::task_reconnect(){
+    if(shouldReconnect &&  reconnectCount < maxReconnectCount){
+        reconnectCount++;
+        logger->info(" 正在尝试重新连接,这是第({}/{})次连接", reconnectCount,maxReconnectCount);
+        reconnect();
+    }
+    if(reconnectCount >= maxReconnectCount){
+        logger->error("重连尝试已达到最大次数，将不再尝试重新连接.");
+        reconnectTask->cancel();
+        reconnectTask = nullptr;
+    }
+}
+
 void BotClient::onTextMsg(string& msg){
-    logger->info("收到服务器消息：" + msg);
+    //logger->info("收到服务器消息：" + msg);
     json msgJson = json::parse(msg);
     json header = msgJson["header"];
     string type_str = header["type"];
-    ServerRecvEvent event_type = FromString(type_str);
+    ServerRecvEvent event_type = EnumConverter::FromString(type_str);
     string packId = header["id"];
     json body = msgJson["body"];
 
@@ -175,11 +199,19 @@ void BotClient::onTextMsg(string& msg){
 }
 
 void BotClient::onError(std::string &errorMsg) {
-
+    logger->error("WebSocket连接错误:{}", errorMsg);
+    logger->info("正在尝试重新连接...");
+    if(reconnectTask == nullptr){
+        reconnectTask = HuHoBot::getInstance().setReconnectTask();
+    }
 }
 
 void BotClient::onLost(int code) {
-
+    logger->error("WebSocket连接丢失:{}", code);
+    logger->info("正在尝试重新连接...");
+    if(reconnectTask == nullptr){
+        reconnectTask = HuHoBot::getInstance().setReconnectTask();
+    }
 }
 
 json BotClient::buildMsg(ServerSendEvent event_type,json body,string packId) {
@@ -195,7 +227,9 @@ json BotClient::buildMsg(ServerSendEvent event_type,json body,string packId) {
 
 void BotClient::sendMessage(ServerSendEvent event_type,json& body,string packId) {
     json msg = buildMsg(event_type,body,packId);
-    client.SendText(msg.dump());
+    if(client.GetStatus() == WebSocketClient::Status::Open){
+        client.SendText(msg.dump());
+    }
 }
 
 void BotClient::shakeHand() {
@@ -220,20 +254,44 @@ void BotClient::bindConfirm(std::string code) {
     sendMessage(ServerSendEvent::bindConfirm,emptyJson,packId);
 }
 
+void BotClient::sendHeart(){
+    json emptyJson;
+    sendMessage(ServerSendEvent::heart,emptyJson);
+}
+
+void BotClient::shutdown(bool _shouldReconnect){
+    shouldReconnect = _shouldReconnect;
+    client.Close();
+}
+
+void BotClient::shakedProcess(){
+    //设置自动断连
+    if(autoDisConnectTask != nullptr){
+        autoDisConnectTask->cancel();
+    }
+    autoDisConnectTask = HuHoBot::getInstance().setAutoDisConnectTask();
+    //设置自动发送心跳包
+    if(heartTask != nullptr){
+        heartTask->cancel();
+    }
+    heartTask = HuHoBot::getInstance().setHeartTask();
+}
+
 //////////////////////////////////// Event Handler /////////////////////////////////////
 void BotClient::handler_shaked(string packId,json &body) {
     int code = body["code"];
     string msg = body["msg"];
+    reconnectCount = 0;
     switch (code) {
         case 1:
             logger->info("与服务端握手成功.");
             shouldReconnect = true;
-            //shakedProcess();
+            shakedProcess();
             break;
         case 2:
             logger->info("握手完成!附加消息:{}", msg);
             shouldReconnect = true;
-            //shakedProcess();
+            shakedProcess();
             break;
         case 3:
             logger->error("握手失败，客户端密钥错误.");
@@ -242,7 +300,7 @@ void BotClient::handler_shaked(string packId,json &body) {
         case 6:
             logger->info("与服务端握手成功，服务端等待绑定...");
             shouldReconnect = true;
-            //shakedProcess();
+            shakedProcess();
             break;
         default:
             logger->error("握手失败，原因{}", msg);
@@ -256,7 +314,7 @@ void BotClient::handler_sendConfig(string packId,json &body){
     config.SetHashKey(HashKey);
     config.Save();
 
-    //ToDo: 自动重连
+    reconnect();
 }
 
 void BotClient::handler_chat(string packId,json &body) {
@@ -277,30 +335,73 @@ void BotClient::handler_chat(string packId,json &body) {
         format.replace(pos, 5, msg);
     }
 
-    //ToDo: 发送消息
+    HuHoBot::getInstance().broadcast(format);
 }
 
 void BotClient::handler_add(string packId,json &body) {
     string XboxId = body["xboxid"];
 
-    //ToDo: 执行命令
+    string cmd = "allowlist add \""+XboxId+"\"";
+    if(HuHoBot::getInstance().runCommand(cmd)){
+        json rBody = {{"msg", "命令执行成功(暂不支持命令回调.)"}};
+        sendMessage(ServerSendEvent::success, rBody, packId);
+    }else{
+        json errorBody = {{"msg", "命令执行失败(暂不支持命令回调.)"}};
+        sendMessage(ServerSendEvent::error, errorBody, packId);
+    }
 }
 
 void BotClient::handler_delete_(string packId,json &body) {
     string XboxId = body["xboxid"];
+    string cmd = "allowlist remove \""+XboxId+"\"";
 
-    //ToDo: 执行命令
+    if(HuHoBot::getInstance().runCommand(cmd)){
+        json rBody = {{"msg", "命令执行成功(暂不支持命令回调.)"}};
+        sendMessage(ServerSendEvent::success, rBody, packId);
+    }else{
+        json errorBody = {{"msg", "命令执行失败(暂不支持命令回调.)"}};
+        sendMessage(ServerSendEvent::error, errorBody, packId);
+    }
 }
 
 void BotClient::handler_cmd(string packId,json &body) {
     string cmd = body["cmd"];
 
-    //ToDo: 执行命令
+    if(HuHoBot::getInstance().runCommand(cmd)){
+        json rBody = {{"msg", "命令执行成功(暂不支持命令回调.)"}};
+        sendMessage(ServerSendEvent::success, rBody, packId);
+    }else{
+        json errorBody = {{"msg", "命令执行失败(暂不支持命令回调.)"}};
+        sendMessage(ServerSendEvent::error, errorBody, packId);
+    }
 }
 
 void BotClient::handler_queryOnline(string packId,json &body) {
-    //ToDo: 获取玩家列表
+    try{
+        std::vector<Player*> onlinePlayers = HuHoBot::getInstance().getOnlinePlayers();
 
+        // 构建玩家列表字符串
+        std::ostringstream oss;
+        for (Player* player : onlinePlayers) {
+            oss << player->getName() << "\n";
+        }
+        oss << "共" << onlinePlayers.size() << "人在线";
+
+        // 构建嵌套JSON结构
+        json list;
+        list["msg"] = oss.str();
+        list["url"] = ConfigManager::Get().GetMotdUrl(); // 从配置获取URL
+        list["serverType"] = "bedrock";
+
+        json rBody;
+        rBody["list"] = list;
+
+        // 发送消息
+        sendMessage(ServerSendEvent::queryOnline, rBody,packId);
+
+    } catch (const std::exception& e) {
+        logger->error("处理在线查询失败: {}", e.what());
+    }
 }
 
 void BotClient::handler_queryList(string packId,json &body) {
@@ -401,7 +502,7 @@ void BotClient::handler_queryList(string packId,json &body) {
 
         // 5. 发送响应
         rBody["list"] = oss.str();
-        sendMessage(ServerSendEvent::queryWl, rBody);
+        sendMessage(ServerSendEvent::queryWl, rBody,packId);
 
     } catch (const std::exception& e) {
         logger->error("查询白名单失败: {}", e.what());
@@ -409,18 +510,73 @@ void BotClient::handler_queryList(string packId,json &body) {
 }
 
 void BotClient::handler_shutdown(string packId,json &body) {
-    logger->error("服务端命令断开连接 原因:"+body["msg"]);
+    string msg = body["msg"];
+    logger->error("服务端命令断开连接 原因:"+msg);
     logger->error("此错误具有不可容错性!请检查插件配置文件!");
     logger->warning("正在断开连接...");
     shouldReconnect = false;
-    //HuHoBot.getClientManager().setShouldReconnect(false);
-    //HuHoBot.getClientManager().shutdownClient();
     client.Shutdown();
 }
 
 void BotClient::handler_run(string packId,json &body, bool isAdmin) {
-    //ToDo: 执行命令
+    try {
+        // 解析请求参数
+        std::string key = body["key"].get<std::string>();
+        std::vector<std::string> params = body["runParams"].get<std::vector<std::string>>();
 
+        // 获取命令映射表
+        auto commands = ConfigManager::Get().GetCustomCommands();
+        std::unordered_map<std::string, CustomCommand> commandMap;
+        for (const auto& cmd : commands) {
+            commandMap[cmd.key] = cmd;
+        }
+
+        // 查找命令
+        auto it = commandMap.find(key);
+        if (it == commandMap.end()) {
+            json errorBody = {{"msg", "未找到对应命令: " + key}};
+            sendMessage(ServerSendEvent::error, errorBody, packId);
+            return;
+        }
+
+        const CustomCommand& result = it->second;
+
+        // 参数替换
+        std::string command = result.command;
+        for (size_t i = 0; i < params.size(); ++i) {
+            std::string placeholder = "&" + std::to_string(i+1);
+            size_t pos = 0;
+            while ((pos = command.find(placeholder, pos)) != std::string::npos) {
+                command.replace(pos, placeholder.length(), params[i]);
+                pos += params[i].length();
+            }
+        }
+
+        // 权限检查
+        if (result.permission > 0 && !isAdmin) {
+            json errorBody = {{"msg", "权限不足，若您为管理员，请使用/管理员执行"}};
+            sendMessage(ServerSendEvent::error, errorBody, packId);
+            return;
+        }
+
+        // 执行命令
+        if(HuHoBot::getInstance().runCommand(command)){
+            json rBody = {{"msg", "命令执行成功(暂不支持命令回调.)"}};
+            sendMessage(ServerSendEvent::success, rBody, packId);
+        }else{
+            json errorBody = {{"msg", "命令执行失败(暂不支持命令回调.)"}};
+            sendMessage(ServerSendEvent::error, errorBody, packId);
+        }
+
+    } catch (const json::exception& e) {
+        logger->error("命令执行参数解析失败: {}", e.what());
+        json errorBody = {{"error", "Invalid request format"}};
+        sendMessage(ServerSendEvent::error, errorBody, packId);
+    } catch (const std::exception& e) {
+        logger->error("命令执行失败: {}", e.what());
+        json errorBody = {{"error", e.what()}};
+        sendMessage(ServerSendEvent::error, errorBody, packId);
+    }
 }
 
 void BotClient::handler_heart(string packId,json &body) {}

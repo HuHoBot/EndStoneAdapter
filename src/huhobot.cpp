@@ -1,9 +1,21 @@
 #include "huhobot.h"
 #include "ConfigManager.h"
+#include "endstone/command/console_command_sender.h"
+
 
 using endstone::Player;
 
 const string HuHoBot::version = "0.0.1";
+HuHoBot* HuHoBot::instance_ = nullptr;
+
+HuHoBot::HuHoBot() {
+    instance_ = this; // 在构造函数中保存实例
+}
+
+// 添加单例访问方法
+HuHoBot& HuHoBot::getInstance() {
+    return *instance_;
+}
 string HuHoBot::getVersion(){
     return version;
 }
@@ -36,11 +48,12 @@ bool HuHoBot::onCommand(endstone::CommandSender &sender, const endstone::Command
             }
 
             else if(args.at(0) == "reconnect"){
-                //Todo: 重新连接
+                sender.sendMessage("正在重新连接");
+                client->reconnect();
             }
             else if(args.at(0) == "disconnect"){
-                //Todo: 断开连接
                 sender.sendMessage("已断开连接");
+                client->shutdown(false);
             }
 
             else if(args.at(0) == "help"){
@@ -65,15 +78,15 @@ bool HuHoBot::onCommand(endstone::CommandSender &sender, const endstone::Command
 
         return true;
     }
-
+    return false;
 }
 
 void HuHoBot::broadcast(const std::string &msg) {
     this->getServer().broadcastMessage(msg);
 }
 
-void HuHoBot::runCommand(const std::string &cmd) {
-    this->getServer().dispatchCommand(
+bool HuHoBot::runCommand(const std::string &cmd) {
+    return this->getServer().dispatchCommand(
             this->getServer().getCommandSender(),
             cmd);
 }
@@ -81,6 +94,32 @@ void HuHoBot::runCommand(const std::string &cmd) {
 std::vector<Player *> HuHoBot::getOnlinePlayers() {
     return this->getServer().getOnlinePlayers();
 }
+
+std::shared_ptr<endstone::Task> HuHoBot::setReconnectTask() {
+    return this->getServer().getScheduler().runTaskTimer(
+            *this,
+            [&]() {
+                client->task_reconnect();
+                }, 0, 5*20);
+}
+
+std::shared_ptr<endstone::Task> HuHoBot::setAutoDisConnectTask() {
+    return this->getServer().getScheduler().runTaskLater(
+            *this,
+            [&]() {
+                getLogger().info("连接超时，已自动重连");
+                client->shutdown(true);
+            }, 6*60*60*20);
+}
+
+std::shared_ptr<endstone::Task> HuHoBot::setHeartTask() {
+    return this->getServer().getScheduler().runTaskTimer(
+            *this,
+            [&]() {
+                client->sendHeart();
+            }, 0, 5*20);
+}
+
 
 ENDSTONE_PLUGIN("huhobot", HuHoBot::getVersion(), HuHoBot)
 {
@@ -90,7 +129,7 @@ ENDSTONE_PLUGIN("huhobot", HuHoBot::getVersion(), HuHoBot)
 
     command("huhobot") //
             .description("HuHoBot's control command.")
-            .usages("/huhobot (bind)<bindAction: bindAction> <bindCode: str>")
+            .usages("/huhobot (bind)<bindAction: bindAction> <bindCode: message>")
             .usages("/huhobot (reload|reconnect|disconnect|help)<action: botAction>")
             .permissions("huhobot.command.huhobot");
 
