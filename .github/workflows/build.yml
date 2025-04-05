@@ -28,7 +28,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DHUHOBOT_SERVER_URL="ws://example.com:8888" ..
           cmake --build .
 
       - name: Upload Artifacts
