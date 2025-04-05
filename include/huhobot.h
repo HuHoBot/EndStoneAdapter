@@ -19,14 +19,14 @@ public:
     static string getVersion();
     void broadcast(const string& msg);
     bool runCommand(const string& cmd);
-    std::vector<Player *> HuHoBot::getOnlinePlayers();
+    std::vector<Player *> getOnlinePlayers();
     void onLoad() override;
     void onEnable() override;
     bool onCommand(endstone::CommandSender &sender, const endstone::Command &command,
                    const std::vector<std::string> &args) override;
     std::shared_ptr<endstone::Task> setReconnectTask();
-    std::shared_ptr<endstone::Task> HuHoBot::setAutoDisConnectTask();
-    std::shared_ptr<endstone::Task> HuHoBot::setHeartTask();
+    std::shared_ptr<endstone::Task> setAutoDisConnectTask();
+    std::shared_ptr<endstone::Task> setHeartTask();
     static HuHoBot& getInstance();
 };
 

@@ -66,5 +66,5 @@ public:
     void reconnect();
     void sendHeart();
     void shutdown(bool _shouldReconnect=true);
-    void BotClient::task_reconnect();
+    void task_reconnect();
 };
