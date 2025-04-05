@@ -4,7 +4,20 @@ on:
   push:
     branches:
       - main
+      - dev
+    paths:
+      - '.github/workflows/build.yml'
+      - 'src/**'
+      - 'include/**'
+      - 'CMakeLists.txt'
+    tags:
+      - 'v*' # 匹配 v 开头的标签
   pull_request:
+    paths:
+      - '.github/workflows/build.yml'
+      - 'src/**'
+      - 'include/**'
+      - 'CMakeLists.txt'
   workflow_dispatch:
 
 jobs:
@@ -34,7 +47,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: example-plugin-windows
+          name: endstone-huhobot-windows
           path: |
             ./build/endstone_*.dll
             ./build/endstone_*.pdb
@@ -73,5 +86,77 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: example-plugin-linux
+          name: endstone-huhobot-linux
           path: ./build/endstone_*.so
+
+  release:
+    name: Create Release
+    needs:
+      - build_linux
+      - build_windows
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    # 新增权限配置
+    permissions:
+      contents: write  # 必须的权限
+      actions: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract release info
+        id: changelog
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          
+          # 修复：使用正确的标签格式匹配
+          VERSION=${TAG_NAME#v}  # 去除v前缀（如果CHANGELOG使用纯版本号）
+          
+          CHANGELOG_CONTENT=$(awk -v version="[v$VERSION]" '
+            BEGIN {RS="## "; FS="\n"}
+            $1 ~ version {
+              sub(/\[.*\] - .*\n/, "")
+              gsub(/`/, "\\`")
+              gsub(/"/, "\\\"")
+              print
+              exit
+            }
+          ' CHANGELOG.md)
+          
+          EOF_MARKER=$(openssl rand -base64 12)
+          echo "body<<$EOF_MARKER" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+          echo "$EOF_MARKER" >> $GITHUB_OUTPUT
+          
+          # 添加标签名输出
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+      - name: Download Linux Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: endstone-huhobot-linux
+          path: artifacts
+
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: endstone-huhobot-windows
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1  # 改用更可靠的 Action
+        with:
+          tag_name: ${{ steps.changelog.outputs.tag_name }}
+          name: HuHoBot ${{ steps.changelog.outputs.tag_name }}
+          body: |
+            ${{ steps.changelog.outputs.body }}
+            
+            ### 构建信息
+            - 构建时间: ${{ github.run_created_at }}
+            - 提交哈希: [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+          files: |
+            artifacts/*.zip
