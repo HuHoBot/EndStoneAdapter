@@ -158,5 +158,12 @@ jobs:
             ### 构建信息
             - 构建时间: ${{ github.run_created_at }}
             - 提交哈希: [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+            
+            ### 下载说明
+            - Linux: 
+              - 插件本体: [endstone_huhobot.so](https://github.com/HuHoBot/EndStoneAdapter/releases/download/${{ steps.changelog.outputs.tag_name }}/endstone_huhobot.so)
+            - Windows:
+              - 插件本体: [endstone_huhobot.dll](https://github.com/HuHoBot/EndStoneAdapter/releases/download/${{ steps.changelog.outputs.tag_name }}/endstone_huhobot.dll)
+              - 插件调试信息: [endstone_huhobot.pdb](https://github.com/HuHoBot/EndStoneAdapter/releases/download/${{ steps.changelog.outputs.tag_name }}/endstone_huhobot.pdb)
           files: |
             artifacts/*
