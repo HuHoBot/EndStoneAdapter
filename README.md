@@ -61,10 +61,10 @@
 
 1. **访问 GitHub Releases 页面**：
 - 打开浏览器，访问 [HuHoBot-EndStoneAdapter Releases](https://github.com/HuHoBot/EndStoneAdapter/releases)
-- 下载最新版本的 `endstone-huhobot-<platform>.zip` 文件
+- 下载最新版本的 `endstone-huhobot-windows.dll` 或 `endstone-huhobot-linux.so` 文件
 
 2. **放置插件文件**：
-- 将下载的 `.dll`或`.so` 文件放入服务器的 `plugins` 目录中
+- 将下载的 `endstone-huhobot-windows.dll`或`endstone-huhobot-linux.so` 文件放入服务器的 `plugins` 目录中
 
 3. **重启服务器**：
 - 重启你的 Minecraft 服务器以加载新插件
@@ -116,9 +116,7 @@
 
 <details>
 <summary>🛡️ 支持哪些服务器版本？</summary>
-✅ 已测试版本：1.8 - 1.21  
-
-✅ 理论支持所有Spigot系核心
+✅ 已测试版本：1.21.60+
 </details>
 
 <details>
