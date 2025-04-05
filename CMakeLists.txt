@@ -11,7 +11,7 @@ set(HUHOBOT_SERVER_URL "ws://127.0.0.1:8888" CACHE STRING "WebSocket server URL"
 # 生成配置文件
 configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/include/config.h.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/include/config.h"
+        "${CMAKE_CURRENT_BINARY_DIR}/config.h"
 )
 
 include(FetchContent)
