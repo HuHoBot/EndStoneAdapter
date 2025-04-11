@@ -342,11 +342,12 @@ void BotClient::handler_add(string packId,json &body) {
     string XboxId = body["xboxid"];
 
     string cmd = "allowlist add \""+XboxId+"\"";
-    if(HuHoBot::getInstance().runCommand(cmd)){
-        json rBody = {{"msg", "命令执行成功(暂不支持命令回调.)"}};
+    auto [output, isSuccess] = HuHoBot::getInstance().runCommand(cmd);
+    if(isSuccess){
+        json rBody = {{"msg", output}};
         sendMessage(ServerSendEvent::success, rBody, packId);
     }else{
-        json errorBody = {{"msg", "命令执行失败(暂不支持命令回调.)"}};
+        json errorBody = {{"msg", output}};
         sendMessage(ServerSendEvent::error, errorBody, packId);
     }
 }
@@ -354,24 +355,26 @@ void BotClient::handler_add(string packId,json &body) {
 void BotClient::handler_delete_(string packId,json &body) {
     string XboxId = body["xboxid"];
     string cmd = "allowlist remove \""+XboxId+"\"";
+    auto [output, isSuccess] = HuHoBot::getInstance().runCommand(cmd);
 
-    if(HuHoBot::getInstance().runCommand(cmd)){
-        json rBody = {{"msg", "命令执行成功(暂不支持命令回调.)"}};
+    if(isSuccess){
+        json rBody = {{"msg", output}};
         sendMessage(ServerSendEvent::success, rBody, packId);
     }else{
-        json errorBody = {{"msg", "命令执行失败(暂不支持命令回调.)"}};
+        json errorBody = {{"msg", output}};
         sendMessage(ServerSendEvent::error, errorBody, packId);
     }
 }
 
 void BotClient::handler_cmd(string packId,json &body) {
     string cmd = body["cmd"];
+    auto [output, isSuccess] = HuHoBot::getInstance().runCommand(cmd);
 
-    if(HuHoBot::getInstance().runCommand(cmd)){
-        json rBody = {{"msg", "命令执行成功(暂不支持命令回调.)"}};
+    if(isSuccess){
+        json rBody = {{"msg", output}};
         sendMessage(ServerSendEvent::success, rBody, packId);
     }else{
-        json errorBody = {{"msg", "命令执行失败(暂不支持命令回调.)"}};
+        json errorBody = {{"msg", output}};
         sendMessage(ServerSendEvent::error, errorBody, packId);
     }
 }
@@ -559,12 +562,14 @@ void BotClient::handler_run(string packId,json &body, bool isAdmin) {
             return;
         }
 
+        auto [output, isSuccess] = HuHoBot::getInstance().runCommand(command);
+
         // 执行命令
-        if(HuHoBot::getInstance().runCommand(command)){
-            json rBody = {{"msg", "命令执行成功(暂不支持命令回调.)"}};
+        if(isSuccess){
+            json rBody = {{"msg", output}};
             sendMessage(ServerSendEvent::success, rBody, packId);
         }else{
-            json errorBody = {{"msg", "命令执行失败(暂不支持命令回调.)"}};
+            json errorBody = {{"msg", output}};
             sendMessage(ServerSendEvent::error, errorBody, packId);
         }
 

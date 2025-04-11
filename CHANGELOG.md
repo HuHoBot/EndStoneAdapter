@@ -1,3 +1,3 @@
-# HuHoBot-EndStone-Adapter v0.0.1
+# HuHoBot-EndStone-Adapter v0.0.2
 
-feat: 初始化版本
+feat: 支持命令输出

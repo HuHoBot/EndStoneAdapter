@@ -1,11 +1,15 @@
 #include "huhobot.h"
 #include "ConfigManager.h"
 #include "endstone/command/console_command_sender.h"
+#include "endstone/command/command_sender_wrapper.h"
+#include "endstone/message.h"
+#include "endstone/lang/language.h"
 
 
 using endstone::Player;
+using endstone::CommandSenderWrapper;
 
-const string HuHoBot::version = "0.0.1";
+const string HuHoBot::version = "0.0.2";
 HuHoBot* HuHoBot::instance_ = nullptr;
 
 HuHoBot::HuHoBot() {
@@ -85,10 +89,46 @@ void HuHoBot::broadcast(const std::string &msg) {
     this->getServer().broadcastMessage(msg);
 }
 
-bool HuHoBot::runCommand(const std::string &cmd) {
-    return this->getServer().dispatchCommand(
-            this->getServer().getCommandSender(),
-            cmd);
+std::string HuHoBot::getMessageContent(const endstone::Message &msg)
+{
+    if (auto *str = std::get_if<std::string>(&msg)) {
+        return *str;
+    }
+    else if (auto *translatable = std::get_if<endstone::Translatable>(&msg)) {
+        return getServer().getLanguage().translate(*translatable);
+    }
+}
+
+std::pair<string, bool> HuHoBot::runCommand(const std::string &cmd) {
+    std::string msgRet;
+
+    // 正确构造 CommandSenderWrapper
+    CommandSenderWrapper sender_wrapper(
+            getServer().getCommandSender(),  // 原始发送者
+
+            // 正确捕获 Message 类型参数
+            [&msgRet, this](const endstone::Message &msg) {
+                msgRet += "\n" + getMessageContent(msg);
+            },
+
+            [&msgRet, this](const endstone::Message &msg) {
+                msgRet += "\n[ERROR] " + getMessageContent(msg);
+            }
+    );
+
+
+    // 关键修改：必须使用 wrapper 发送命令
+    bool success = getServer().dispatchCommand(sender_wrapper, cmd);
+
+    // 处理无输出情况
+    if (msgRet.empty()) {
+        msgRet = "无返回值";
+    } else {
+        // 移除首行多余换行
+        msgRet.erase(0, 1);
+    }
+
+    return {msgRet,success};
 }
 
 std::vector<Player *> HuHoBot::getOnlinePlayers() {

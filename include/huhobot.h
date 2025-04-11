@@ -14,11 +14,12 @@ private:
     static const string version;
     BotClient* client;
     static HuHoBot* instance_;
+    std::string getMessageContent(const endstone::Message &msg);
 public:
     HuHoBot();
     static string getVersion();
     void broadcast(const string& msg);
-    bool runCommand(const string& cmd);
+    std::pair<string, bool> runCommand(const string& cmd);
     std::vector<Player *> getOnlinePlayers();
     void onLoad() override;
     void onEnable() override;
