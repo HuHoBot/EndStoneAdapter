@@ -139,13 +139,13 @@ jobs:
       - name: Download Linux Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: endstone-huhobot-linux
+          name: endstone-huhobot-Linux
           path: artifacts
 
       - name: Download Windows Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: endstone-huhobot-windows
+          name: endstone-huhobot-Windows
           path: artifacts
 
       - name: Rename release files
