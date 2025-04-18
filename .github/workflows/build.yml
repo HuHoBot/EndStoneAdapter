@@ -61,8 +61,7 @@ jobs:
         with:
           name: endstone-huhobot-${{ runner.os }}
           path: |
-            ./build/endstone_HuHoBot_*
-            ./build/*.pdb
+            ./build/*
 
   build_linux:
     name: Build on Ubuntu
@@ -112,8 +111,7 @@ jobs:
         with:
           name: endstone-huhobot-${{ runner.os }}
           path: |      
-            ./build/endstone_HuHoBot_*
-            ./build/*.pdb
+            ./build/*
 
   release:
     name: Create Release
