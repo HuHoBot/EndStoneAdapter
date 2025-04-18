@@ -44,13 +44,25 @@ jobs:
           cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DHUHOBOT_SERVER_URL="${{ secrets.WS_SERVER_URL }}" ..
           cmake --build .
 
+      - name: Rename artifacts
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |    
+          cd build
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            ren endstone_HuHoBot.dll "endstone_HuHoBot_${TAG_NAME}.dll"
+            ren endstone_HuHoBot.pdb "endstone_HuHoBot_${TAG_NAME}.pdb"
+          else
+            mv endstone_HuHoBot.so "endstone_HuHoBot_${TAG_NAME}.so"
+          fi
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: endstone-huhobot-windows
+          name: endstone-huhobot-${{ runner.os }}
           path: |
-            ./build/endstone_*.dll
-            ./build/endstone_*.pdb
+            ./build/endstone_HuHoBot_*
+            ./build/*.pdb
 
   build_linux:
     name: Build on Ubuntu
@@ -83,11 +95,25 @@ jobs:
           cmake -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DHUHOBOT_SERVER_URL="${{ secrets.WS_SERVER_URL }}" ..
           cmake --build .
 
+      - name: Rename artifacts
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          cd build
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            ren endstone_HuHoBot.dll "endstone_HuHoBot_${TAG_NAME}.dll"
+            ren endstone_HuHoBot.pdb "endstone_HuHoBot_${TAG_NAME}.pdb"
+          else
+            mv endstone_HuHoBot.so "endstone_HuHoBot_${TAG_NAME}.so"
+          fi
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: endstone-huhobot-linux
-          path: ./build/endstone_*.so
+          name: endstone-huhobot-${{ runner.os }}
+          path: |      
+            ./build/endstone_HuHoBot_*
+            ./build/*.pdb
 
   release:
     name: Create Release
@@ -147,6 +173,12 @@ jobs:
           name: endstone-huhobot-windows
           path: artifacts
 
+
+
+      - name: Get timestamp
+        id: get-time
+        run: echo "TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+
       - name: Create Release
         uses: softprops/action-gh-release@v1  # 改用更可靠的 Action
         with:
@@ -156,14 +188,15 @@ jobs:
             ${{ steps.changelog.outputs.body }}
             
             ### 构建信息
-            - 构建时间: ${{ github.run_created_at }}
+            - 构建时间: ${{ steps.get-time.outputs.TIME }}
             - 提交哈希: [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
             
             ### 下载说明
             - Linux: 
-              - 插件本体: [endstone_huhobot.so](https://github.com/HuHoBot/EndStoneAdapter/releases/download/${{ steps.changelog.outputs.tag_name }}/endstone_huhobot.so)
+              - 插件本体: [endstone_huhobot_${{ steps.changelog.outputs.tag_name }}.so](https://github.com/HuHoBot/EndStoneAdapter/releases/download/${{ steps.changelog.outputs.tag_name }}/endstone_huhobot_${{ steps.changelog.outputs.tag_name }}.so)
             - Windows:
-              - 插件本体: [endstone_huhobot.dll](https://github.com/HuHoBot/EndStoneAdapter/releases/download/${{ steps.changelog.outputs.tag_name }}/endstone_huhobot.dll)
-              - 插件调试信息: [endstone_huhobot.pdb](https://github.com/HuHoBot/EndStoneAdapter/releases/download/${{ steps.changelog.outputs.tag_name }}/endstone_huhobot.pdb)
+              - 插件本体: [endstone_huhobot_${{ steps.changelog.outputs.tag_name }}.dll](https://github.com/HuHoBot/EndStoneAdapter/releases/download/${{ steps.changelog.outputs.tag_name }}/endstone_huhobot_${{ steps.changelog.outputs.tag_name }}.dll)
+              - 插件调试信息: [endstone_huhobot_${{ steps.changelog.outputs.tag_name }}.pdb](https://github.com/HuHoBot/EndStoneAdapter/releases/download/${{ steps.changelog.outputs.tag_name }}/endstone_huhobot_${{ steps.changelog.outputs.tag_name }}.pdb)
+
           files: |
             artifacts/*

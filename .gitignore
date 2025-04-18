@@ -13,3 +13,5 @@ CMakeUserPresets.json
 .idea
 build
 cmake-build-*
+/build/
+endstone_HuHoBot_*
