@@ -9,7 +9,7 @@
 using endstone::Player;
 using endstone::CommandSenderWrapper;
 
-const string HuHoBot::version = "0.0.2";
+const string HuHoBot::version = HUHOBOT_VERSION;
 HuHoBot* HuHoBot::instance_ = nullptr;
 
 HuHoBot::HuHoBot() {

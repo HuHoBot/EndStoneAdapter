@@ -5,6 +5,8 @@
 #include "endstone/scheduler/task.h"
 #include "endstone/scheduler/scheduler.h"
 
+#define HUHOBOT_VERSION "0.0.3"
+
 using std::string;
 using endstone::Player;
 
