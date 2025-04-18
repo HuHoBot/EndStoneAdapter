@@ -61,7 +61,8 @@ jobs:
         with:
           name: endstone-huhobot-${{ runner.os }}
           path: |
-            ./build/*
+            ./build/endstone_*.dll
+            ./build/endstone_*.pdb
 
   build_linux:
     name: Build on Ubuntu
@@ -110,8 +111,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: endstone-huhobot-${{ runner.os }}
-          path: |      
-            ./build/*
+          path: |
+            ./build/endstone_*.so
 
   release:
     name: Create Release
