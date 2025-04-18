@@ -57,7 +57,8 @@ bool HuHoBot::onCommand(endstone::CommandSender &sender, const endstone::Command
             }
             else if(args.at(0) == "disconnect"){
                 sender.sendMessage("已断开连接");
-                client->shutdown(false);
+                //client->shutdown(false);
+                client->shutdown(true);
             }
 
             else if(args.at(0) == "help"){
@@ -97,6 +98,7 @@ std::string HuHoBot::getMessageContent(const endstone::Message &msg)
     else if (auto *translatable = std::get_if<endstone::Translatable>(&msg)) {
         return getServer().getLanguage().translate(*translatable);
     }
+    return "";
 }
 
 std::pair<string, bool> HuHoBot::runCommand(const std::string &cmd) {
@@ -148,7 +150,8 @@ std::shared_ptr<endstone::Task> HuHoBot::setAutoDisConnectTask() {
             *this,
             [&]() {
                 getLogger().info("连接超时，已自动重连");
-                client->shutdown(true);
+                //client->shutdown(true);
+                client->reconnect();
             }, 6*60*60*20);
 }
 

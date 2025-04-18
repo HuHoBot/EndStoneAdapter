@@ -124,7 +124,7 @@ void BotClient::connect(){
 void BotClient::reconnect() {
     logger->info("正在重连服务器...");
     if(client.GetStatus() == WebSocketClient::Status::Open){
-        client.Close();
+        client.Shutdown();
         shouldReconnect = false;
     }
     connect();
@@ -261,7 +261,7 @@ void BotClient::sendHeart(){
 
 void BotClient::shutdown(bool _shouldReconnect){
     shouldReconnect = _shouldReconnect;
-    client.Close();
+    client.Shutdown();
 }
 
 void BotClient::shakedProcess(){

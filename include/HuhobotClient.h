@@ -28,6 +28,7 @@ private:
     Logger* logger;
     std::unordered_map<std::string, std::string> bindMap;
     bool shouldReconnect;
+    bool waitingReconnect = false;
     int reconnectCount = 0;
     int maxReconnectCount = 5;
     std::shared_ptr<endstone::Task> reconnectTask = nullptr;
