@@ -31,6 +31,9 @@ void HuHoBot::onLoad(){
 void HuHoBot::onEnable() {
     client = new BotClient(&getLogger());
 
+    //注册事件
+    registerEvent(&HuHoBot::onPlayerChat, *this);
+
     //检测是否已经生成hashKey
     ConfigManager config = ConfigManager();
     if(config.GetHashKey() == ""){
@@ -41,14 +44,42 @@ void HuHoBot::onEnable() {
     client->connect();
 }
 
+void HuHoBot::onPlayerChat(endstone::PlayerChatEvent &event){
+    string msg = event.getMessage();
+    string playerName = event.getPlayer().getName();
+    ConfigManager config = ConfigManager::Get();
+
+    getLogger().info("玩家 " + playerName + " 在游戏中发送了消息: " + msg);
+
+    string format = config.GetChatFormatFromGame();
+    string prefix = config.GetPostPrefix();
+    bool isPostChat = config.GetPostChat();
+
+
+    if(msg.rfind(prefix, 0) == 0 && isPostChat){
+        std::string formatted = format;
+        size_t msg_start_pos = prefix.length();
+
+        formatted = std::regex_replace(formatted, std::regex("\\{name\\}"), playerName);
+        formatted = std::regex_replace(formatted, std::regex("\\{msg\\}"), msg.substr(msg_start_pos));
+
+        client->sendChat(formatted);
+    }
+}
+
 bool HuHoBot::onCommand(endstone::CommandSender &sender, const endstone::Command &command,
                const std::vector<std::string> &args)
 {
     if (command.getName() == "huhobot") {
         if(args.size() == 1){
             if(args.at(0) == "reload"){
-                ConfigManager config = ConfigManager::Get();
-                sender.sendMessage("重载配置文件成功");
+                try {
+                    ConfigManager::Get().Reload();
+                    sender.sendMessage("配置重载成功");
+                } catch (const std::exception& e) {
+                    sender.sendErrorMessage("配置重载失败: " + std::string(e.what()));
+                    getLogger().error("配置重载失败: {}", e.what());
+                }
             }
 
             else if(args.at(0) == "reconnect"){
@@ -161,6 +192,12 @@ std::shared_ptr<endstone::Task> HuHoBot::setHeartTask() {
             [&]() {
                 client->sendHeart();
             }, 0, 5*20);
+}
+
+void HuHoBot::broadcastMsg(const string& msg){
+    getServer().getScheduler().runTask(*this,[this,msg]() {
+        broadcast(msg);
+    });
 }
 
 

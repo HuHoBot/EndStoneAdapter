@@ -22,7 +22,10 @@ public:
     int GetVersion() const;
     std::string GetServerId() const;
     std::string GetHashKey() const;
-    std::string GetChatFormatGroup() const;
+    std::string GetChatFormatFromGame() const;
+    std::string GetChatFormatFromGroup() const;
+    bool GetPostChat() const;
+    std::string GetPostPrefix() const;
     std::string GetMotdUrl() const;
     std::string GetServerName() const;
     std::vector<CustomCommand> GetCustomCommands() const;
@@ -32,6 +35,7 @@ public:
     void SetHashKey(const std::string& key);
 
     void Load(const std::string& path);
+    void Reload();
     void Save();
 
     ConfigManager();
@@ -41,7 +45,7 @@ private:
 
     json data_;
     std::string path_;
-    int version_ = 1;
+    int version_ = 2;
 };
 
 

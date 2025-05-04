@@ -66,6 +66,7 @@ public:
     void bindConfirm(string code);
     void reconnect();
     void sendHeart();
+    void sendChat(string msg);
     void shutdown(bool _shouldReconnect=true);
     void task_reconnect();
 };

@@ -13,6 +13,7 @@ using endstone::Logger;
 enum class ServerSendEvent {
     sendMsg,
     heart,
+    chat,
     success,
     error,
     shakeHand,
@@ -44,6 +45,7 @@ string EnumConverter::ToString(ServerSendEvent e) {
     static const std::unordered_map<ServerSendEvent, std::string> map{
         {ServerSendEvent::sendMsg, "sendMsg"},
         {ServerSendEvent::heart, "heart"},
+        {ServerSendEvent::chat, "chat"},
         {ServerSendEvent::success, "success"},
         {ServerSendEvent::error, "error"},
         {ServerSendEvent::shakeHand, "shakeHand"},
@@ -259,6 +261,18 @@ void BotClient::sendHeart(){
     sendMessage(ServerSendEvent::heart,emptyJson);
 }
 
+void BotClient::sendChat(string msg){
+    ConfigManager& config = ConfigManager::Get();
+    string serverId = config.GetServerId();
+
+    json body = {
+            {"serverId", serverId},
+            {"msg", msg}
+    };
+
+    sendMessage(ServerSendEvent::chat,body);
+}
+
 void BotClient::shutdown(bool _shouldReconnect){
     shouldReconnect = _shouldReconnect;
     client.Shutdown();
@@ -321,7 +335,7 @@ void BotClient::handler_chat(string packId,json &body) {
     string nick = body["nick"];
     string msg = body["msg"];
     ConfigManager& config = ConfigManager::Get();
-    string format = config.GetChatFormatGroup();
+    string format = config.GetChatFormatFromGroup();
 
     // 替换{nick}
     size_t pos = format.find("{nick}");
@@ -335,7 +349,7 @@ void BotClient::handler_chat(string packId,json &body) {
         format.replace(pos, 5, msg);
     }
 
-    HuHoBot::getInstance().broadcast(format);
+    HuHoBot::getInstance().broadcastMsg(format);
 }
 
 void BotClient::handler_add(string packId,json &body) {

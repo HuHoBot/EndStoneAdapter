@@ -1,11 +1,14 @@
 #pragma once
 #include <endstone/plugin/plugin.h>
+#include <string>
+#include <regex>
 #include "HuhobotClient.h"
 #include "ConfigManager.h"
 #include "endstone/scheduler/task.h"
 #include "endstone/scheduler/scheduler.h"
+#include "endstone/event/player/player_chat_event.h"
 
-#define HUHOBOT_VERSION "0.0.3"
+#define HUHOBOT_VERSION "0.0.4"
 
 using std::string;
 using endstone::Player;
@@ -25,11 +28,13 @@ public:
     std::vector<Player *> getOnlinePlayers();
     void onLoad() override;
     void onEnable() override;
+    void onPlayerChat(endstone::PlayerChatEvent &event);
     bool onCommand(endstone::CommandSender &sender, const endstone::Command &command,
                    const std::vector<std::string> &args) override;
     std::shared_ptr<endstone::Task> setReconnectTask();
     std::shared_ptr<endstone::Task> setAutoDisConnectTask();
     std::shared_ptr<endstone::Task> setHeartTask();
+    void broadcastMsg(const string& msg);
     static HuHoBot& getInstance();
 };
 

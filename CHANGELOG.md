@@ -1,5 +1,8 @@
-# HuHoBot-EndStone-Adapter v0.0.3
+# HuHoBot-EndStone-Adapter v0.0.4
 
-fix(connection): 修正重连问题
-- 修正自动重连无法重连的情况
-- 修改为Shutdown关闭连接
+feat(chat): 增加聊天事件处理功能
+
+- 新增 onChat 类实现聊天事件监听
+- 增加配置项支持聊天消息转发
+- 优化配置文件结构和版本管理
+- 修复`/huhobot reload`不能重载的问题

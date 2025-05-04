@@ -13,6 +13,10 @@ ConfigManager::ConfigManager() {
     Load("plugins/HuHoBot/config.json");
 }
 
+void ConfigManager::Reload() {
+    Load(path_); // 使用之前保存的路径重新加载
+}
+
 void ConfigManager::Load(const std::string& path) {
     path_ = path;
 
@@ -44,8 +48,21 @@ void ConfigManager::Save() {
 }
 
 void ConfigManager::InitDefaults() {
-    if (!data_.contains("version")) {
+    // 版本号自动升级
+    if (!data_.contains("version") || data_["version"] < 2) {
+
         data_["version"] = version_;
+    }
+
+    // 旧版本配置迁移
+    if (data_["version"] == 1) {
+
+        // 迁移 chatFormatGroup 到新结构
+        if (data_.contains("chatFormatGroup")) {
+            data_["chatFormat"]["from_group"] = data_["chatFormatGroup"];
+            data_.erase("chatFormatGroup");
+        }
+        data_["version"] = version_; // 升级版本号
     }
 
     if (!data_.contains("serverId") || data_["serverId"].empty()) {
@@ -56,8 +73,21 @@ void ConfigManager::InitDefaults() {
         data_["hashKey"] = "";
     }
 
-    if (!data_.contains("chatFormatGroup")) {
-        data_["chatFormatGroup"] = "群:<{nick}> {msg}";
+    // 初始化聊天格式配置
+    if (!data_.contains("chatFormat")) {
+        data_["chatFormat"] = {
+                {"from_game", "<{name}> {msg}"},
+                {"from_group", "群:<{nick}> {msg}"},
+                {"post_chat", true},
+                {"post_prefix", ""}
+        };
+    } else {
+        // 确保所有子字段存在
+        auto& chatFormat = data_["chatFormat"];
+        if (!chatFormat.contains("from_game")) chatFormat["from_game"] = "<{name}> {msg}";
+        if (!chatFormat.contains("from_group")) chatFormat["from_group"] = "群:<{nick}> {msg}";
+        if (!chatFormat.contains("post_chat")) chatFormat["post_chat"] = true;
+        if (!chatFormat.contains("post_prefix")) chatFormat["post_prefix"] = "";
     }
 
     if (!data_.contains("motdUrl")) {
@@ -89,8 +119,20 @@ std::string ConfigManager::GetHashKey() const {
     return data_["hashKey"];
 }
 
-std::string ConfigManager::GetChatFormatGroup() const {
-    return data_["chatFormatGroup"];
+std::string ConfigManager::GetChatFormatFromGame() const {
+    return data_["chatFormat"]["from_game"];
+}
+
+std::string ConfigManager::GetChatFormatFromGroup() const {
+    return data_["chatFormat"]["from_group"];
+}
+
+bool ConfigManager::GetPostChat() const {
+    return data_["chatFormat"]["post_chat"];
+}
+
+std::string ConfigManager::GetPostPrefix() const {
+    return data_["chatFormat"]["post_prefix"];
 }
 
 std::string ConfigManager::GetMotdUrl() const {
