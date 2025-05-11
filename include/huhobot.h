@@ -8,7 +8,7 @@
 #include "endstone/scheduler/scheduler.h"
 #include "endstone/event/player/player_chat_event.h"
 
-#define HUHOBOT_VERSION "0.0.4"
+#define HUHOBOT_VERSION "0.0.5"
 
 using std::string;
 using endstone::Player;

@@ -336,6 +336,9 @@ void BotClient::handler_chat(string packId,json &body) {
     string msg = body["msg"];
     ConfigManager& config = ConfigManager::Get();
     string format = config.GetChatFormatFromGroup();
+    bool postChat = config.GetPostChat();
+
+    if(!postChat) return;
 
     // 替换{nick}
     size_t pos = format.find("{nick}");
