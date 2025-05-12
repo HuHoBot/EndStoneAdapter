@@ -49,7 +49,7 @@ void HuHoBot::onPlayerChat(endstone::PlayerChatEvent &event){
     string playerName = event.getPlayer().getName();
     ConfigManager config = ConfigManager::Get();
 
-    getLogger().info("玩家 " + playerName + " 在游戏中发送了消息: " + msg);
+    //getLogger().info("玩家 " + playerName + " 在游戏中发送了消息: " + msg);
 
     string format = config.GetChatFormatFromGame();
     string prefix = config.GetPostPrefix();
