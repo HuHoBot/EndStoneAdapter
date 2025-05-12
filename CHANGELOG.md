@@ -1,5 +1,3 @@
-# HuHoBot-EndStone-Adapter v0.0.5
+# HuHoBot-EndStone-Adapter v0.0.6
 
-feat:适配EndStone 0.7.3 
-
-fix: 修复post_chat不能控制聊天转发的问题
+feat:适配EndStone 0.8.0
