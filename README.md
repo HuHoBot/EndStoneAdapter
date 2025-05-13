@@ -52,7 +52,7 @@
 
 ### 环境要求
 
-- EndStone 0.7.2+
+- EndStone 0.8.0+
 
 ### 快速开始
 
@@ -118,7 +118,7 @@
 
 <details>
 <summary>🛡️ 支持哪些服务器版本？</summary>
-✅ 已测试版本：1.21.60+
+✅ 已测试版本：1.21.80+
 </details>
 
 <details>
