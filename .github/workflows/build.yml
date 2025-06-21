@@ -96,12 +96,12 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: ${{ github.event.repository.name }}-windows-x86_64
-          path: artifact
+          path: artifacts
 
       - uses: actions/download-artifact@v4
         with:
           name: ${{ github.event.repository.name }}-linux-x86_64
-          path: artifact
+          path: artifacts
 
       - name: Extract release info
         id: changelog
