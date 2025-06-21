@@ -180,9 +180,33 @@ void BotClient::on_message(ws_client* c, websocketpp::connection_hdl hdl, messag
 
 // 连接关闭
 void BotClient::on_close(ws_client* c, websocketpp::connection_hdl hdl) {
-    logger->error("连接关闭");
-    if (!reconnectTask && shouldReconnect) {
-        reconnectTask = HuHoBot::getInstance().setReconnectTask();
+    try {
+        websocketpp::lib::error_code ec;
+        auto con = c->get_con_from_hdl(hdl, ec);
+        
+        if (!ec && con) {
+            websocketpp::close::status::value code = con->get_remote_close_code();
+            std::string reason = con->get_remote_close_reason();
+            
+            logger->error("连接关闭 - 状态码: {}, 原因: {}", code, reason.empty() ? "无" : reason);
+            
+            // 特殊处理不可恢复的错误码
+            if(code == 1003 || code == 1008) {
+                logger->critical("遇到不可恢复的连接错误,停止自动重连,检查无误后请手动重连");
+                shouldReconnect = false;  // 永久关闭自动重连
+                CancelAllTask(true);      // 取消所有任务
+                return;                   // 不执行后续重连逻辑
+            }
+        } else {
+            logger->error("连接关闭 - 无法获取关闭详情: {}", ec.message());
+        }
+
+        // 正常关闭或可恢复的错误继续执行重连逻辑
+        if (!reconnectTask && shouldReconnect) {
+            reconnectTask = HuHoBot::getInstance().setReconnectTask();
+        }
+    } catch (...) {
+        logger->error("连接关闭 - 获取关闭信息时发生异常");
     }
 }
 
@@ -198,7 +222,18 @@ void BotClient::on_fail(ws_client* c, websocketpp::connection_hdl hdl) {
 void BotClient::Reconnect() {
     logger->info("正在重连服务器...");
     try {
-        ShutdownClient();
+        if (!client.stopped()) {
+            client.stop(); // 停止IO服务
+        }
+
+        if (io_thread.joinable()) {
+            io_thread.join();
+        }
+
+        connection_hdl_.reset();
+        client.reset();
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
         connect();
     } catch (...) {
         logger->error("重连失败,未知的错误.");
@@ -284,6 +319,10 @@ json BotClient::buildMsg(ServerSendEvent event_type, json body, string packId) {
 }
 
 void BotClient::sendMessage(ServerSendEvent event_type, json& body, string packId) {
+    if (!isConnected()) {
+        CancelAllTask(false);
+        return;
+    }
     json        msg     = buildMsg(event_type, body, packId);
     std::string msg_str = msg.dump();
 
@@ -348,28 +387,33 @@ void BotClient::ShutdownClient(bool _shouldReconnect, string reason) {
         if (!ec && con) {
             con->close(websocketpp::close::status::going_away, reason);
         }
+        client.stop();
     } catch (...) {
         logger->error("关闭连接时发生未知错误");
+    }
+}
+
+void BotClient::CancelAllTask(bool cancelReconnectTask){
+    if (reconnectTask && cancelReconnectTask) {
+        reconnectTask->cancel();
+        reconnectTask = nullptr;
+    }
+
+    if (heartTask) {
+        heartTask->cancel();
+        heartTask = nullptr;
+    }
+
+    if (autoDisConnectTask) {
+        autoDisConnectTask->cancel();
+        autoDisConnectTask = nullptr;
     }
 }
 
 void BotClient::DestoryClient() {
     try {
         ShutdownClient(false);
-        if (reconnectTask) {
-            reconnectTask->cancel();
-            reconnectTask = nullptr;
-        }
-
-        if (heartTask) {
-            heartTask->cancel();
-            heartTask = nullptr;
-        }
-
-        if (autoDisConnectTask) {
-            autoDisConnectTask->cancel();
-            autoDisConnectTask = nullptr;
-        }
+        CancelAllTask();
 
         if (!client.stopped()) {
             client.stop();
@@ -398,6 +442,18 @@ void BotClient::shakedProcess() {
         heartTask->cancel();
     }
     heartTask = HuHoBot::getInstance().setHeartTask();
+}
+
+bool BotClient::isConnected(){
+    try {
+        websocketpp::lib::error_code ec;
+        auto                         con = client.get_con_from_hdl(connection_hdl_, ec);
+
+        return !ec && con && con->get_state() == websocketpp::session::state::open;
+    } catch (...) {
+        
+    }
+    return false;
 }
 
 //////////////////////////////////// Event Handler /////////////////////////////////////

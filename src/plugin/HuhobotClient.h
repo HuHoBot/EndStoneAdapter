@@ -80,6 +80,8 @@ private:
     json buildMsg(ServerSendEvent event_type, json body, string packId);
     void shakeHand();
     void shakedProcess();
+    bool isConnected();
+    void CancelAllTask(bool cancelReconnectTask=true);
 
     // Event Handler
     void handler_sendConfig(string packId, json& body);
@@ -114,6 +116,6 @@ public:
 
     void task_reconnect();
 
-    void ShutdownClient(bool _shouldReconnect = true,string reason = ""); // 关闭客户端
-    void DestoryClient();                              // 销毁客户端
+    void ShutdownClient(bool _shouldReconnect = true, string reason = ""); // 关闭客户端
+    void DestoryClient();                                                  // 销毁客户端
 };
