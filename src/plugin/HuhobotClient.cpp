@@ -5,9 +5,7 @@
 #include "huhobot.h"
 #include "websocketpp/close.hpp"
 #include <algorithm>
-#include <excpt.h>
 #include <fstream>
-#include <iostream>
 #include <set>
 #include <sstream>
 #include <string>
