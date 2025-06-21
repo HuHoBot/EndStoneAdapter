@@ -1,19 +1,30 @@
+# CMake生成文件
 CMakeLists.txt.user
 CMakeCache.txt
-CMakeFiles
-CMakeScripts
-Testing
+CMakeFiles/
+CMakeScripts/
+Testing/
 Makefile
 cmake_install.cmake
 install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
-_deps
+_deps/
 CMakeUserPresets.json
-.idea
-build
-bin
+
+# 构建输出
+build/
+cmake-build-*/
+bin/
+endstone_HuHoBot_*
+
+# IDE和编辑器配置
+.idea/
+.vscode/
+
+# 开发工具配置
+.clang*
+.xmake/
+
+# 其他
 Signature.txt
-.vscode
-.xmake
-CMakeLists.txt
